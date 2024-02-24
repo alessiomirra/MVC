@@ -2,105 +2,98 @@
 
 namespace App\Controllers;
 
-use PDO;
 use App\Models\Post;
 use App\Models\Comment;
+use PDO;
 
-require_once 'app/Controllers/BaseController.php';
+class PostController extends BaseController {
 
-class PostController extends BaseController
-{
-    protected string $tplDir = 'app/Views/';
-    protected  Post $post;
-    protected $content = '';
-    protected $layout = 'layout/index.tpl.php';
+    protected Post $post;
 
     public function __construct(
-        protected PDO $conn
-       
+            protected PDO $conn
     ) {
+        parent::__construct($conn);
         $this->post = new Post($conn);
     }
 
-  
-
-    public function getPosts(): void
-    {
-        $posts = $this->post->all();
-
-         $this->content = view('posts', compact('posts'), $this->tplDir);
-         
-       
+    private function redirectIfNotLoggedIn() {
+        if (!isUserLoggedin()) {
+            redirect('/auth/login');
+        }
     }
 
-    public function show(int $postid): void 
-    {
+    public function getPosts(): void {
+        $posts = $this->post->all();
+
+        $this->content = view('posts', compact('posts'), $this->tplDir);
+    }
+
+    public function show(int $postid): void {
         $post = $this->post->findByPostId($postid);
         $comment = new Comment($this->conn);
         $comments = $comment->all($postid);
-        $this->content = view('post', compact('post' ,'comments'));
-      
+        $this->content = view('post', compact('post', 'comments'));
     }
 
-    public function edit(int $postid): void 
-    {
-       
+    public function edit(int $postid): void {
+
+        $this->redirectIfNotLoggedIn();
         $post = $this->post->findByPostId($postid);
-        $this->content = view('editPost', compact('post'));
-      
+        $this->content = view('editpost', compact('post'));
     }
 
-    public function create(): void 
-    {
-       
-          $this->content = view('newpost');
-      
+    public function create(): void {
+
+        $this->redirectIfNotLoggedIn();
+        $this->content = view('newpost');
     }
-    
-    public function save(?int $postid = null): void
-    {
-       
+
+    public function save(?int $postid = null): void {
+
+        $this->redirectIfNotLoggedIn();
         $post = [
+            'user_id' => getUserId(),
             'email' => $_POST['email'] ?? '',
             'title' => $_POST['title'] ?? '',
             'message' => $_POST['message'] ?? '',
         ];
 
-        if (!$postid){
+        if (!$postid) {
             $this->post->save($post);
         } else {
             $this->post->update($post, $postid);
         }
-          
-        header('Location:/');
-      
+
+        redirect('/');
     }
 
-    public function delete(int $postid): void
-    {
+    public function saveComment(int $postid): void {
+        
+        $comment = [
+        'post_id' => $postid,
+        'user_id' => getUserId(),
+        'email' => $_POST['email'] ?? '',
+        'comment' => $_POST['comment'] ?? '',
+        ];
+        $commentObj = new Comment($this->conn);
+
+        $commentObj->save($comment);
+
+        redirect('/posts/' . $postid);
+    }
+
+    public function delete(int $postid): void {
+
+        $this->redirectIfNotLoggedIn();
 
         $this->post->delete($postid);
-          
-        header('Location:/');
-      
-    }
 
-    public function saveComment(int $postid): void
-    {
-       
-        $comment = [
-            'email' => $_POST['email'] ?? '',
-            'comment' => $_POST['comment'] ?? '',
-        ];
-
-        $commentObj = new Comment($this->conn);
-        $commentObj->save($comment, $postid);
-          
-        header('Location:/posts/'.$postid);
-      
+        redirect('/');
     }
 
     public function display(): void {
         require $this->layout;
     }
+
 }

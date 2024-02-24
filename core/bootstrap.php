@@ -1,10 +1,14 @@
 <?php 
+session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+require_once 'app/Controllers/BaseController.php';
 require_once 'app/Controllers/PostController.php';
+require_once 'app/Controllers/LoginController.php';
 require_once 'db/DBPDO.php';
 require_once 'db/DbFactory.php';
+require_once 'app/Models/User.php';
 require_once 'app/Models/Post.php';
 require_once 'app/Models/Comment.php';
 require_once 'helpers/functions.php';

@@ -4,21 +4,22 @@ namespace App\Models;
 
 use PDO;
 
-class Comment
-{
+class Comment {
+
     public string $comment = '';
     public string $datecreated = '';
     public string $email = '';
 
-    public function __construct(protected PDO $conn)
-    {
+    public function __construct(protected PDO $conn) {
+        
     }
 
-    public function all(int $postid): array
-    {
+    public function all(int $postid): array {
         $result = [];
-        $sql = 'select * from postscomments WHERE post_id=:postid ORDER BY datecreated DESC';
-        $stm = $this->conn->prepare($sql);
+    $sql ='select p.*, u.email as user_email from postscomments as p  LEFT JOIN users as u ';
+         $sql .= ' on p.user_id = u.id where post_id=:postid ORDER BY datecreated DESC';
+         
+         $stm = $this->conn->prepare($sql);
         $stm->bindParam(':postid', $postid, PDO::PARAM_INT);
 
         if ($stm) {
@@ -29,31 +30,31 @@ class Comment
         return $result;
     }
 
-
-    public function save(array $comment, int $postid): bool
-    {
+    public function save(array $comment): bool {
         $ret = false;
 
-        $sql = 'INSERT INTO  postscomments ( post_id,  email, comment,datecreated) values ';
-        $sql .= ' (:postid,  :email, :comment,NOW())';
+        $sql = 'INSERT INTO  postscomments (user_id,'
+                . ' post_id,  email, comment,datecreated) values ';
+        $sql .= ' (:user_id, :post_id,  :email, :comment,NOW())';
 
         $stm = $this->conn->prepare($sql);
 
         if ($stm) {
             $res = $stm->execute([
-                'postid' => $postid,
+                'user_id' => $comment['user_id'],
+                'post_id' => $comment['post_id'],
                 'email' => $comment['email'],
-                'comment' => $comment['comment']  
-            ]);
+                'comment' => $comment['comment']
+                    ]
+            );
 
             return $stm->rowCount();
         }
-         
+
         return $ret;
     }
 
-    public function delete(int $commentid): int
-    {
+    public function delete(int $commentid): int {
         $ret = 0;
 
         $sql = 'DELETE FROM  postscomments  ';
